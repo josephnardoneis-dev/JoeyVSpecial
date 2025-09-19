@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Bet Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
+            <div>
+                <button class="btn btn-primary me-2" onclick="scrapeNewPicks()">
+                    <i class="fas fa-download me-1"></i>Scrape New Picks
+                </button>
+                <button class="btn btn-success me-2" onclick="updateResults()">
+                    <i class="fas fa-sync me-1"></i>Update Results
+                </button>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-file-export me-1"></i>Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/export/picks.csv">
+                            <i class="fas fa-table me-1"></i>All Picks CSV
+                        </a></li>
+                        <li><a class="dropdown-item" href="/export/experts.csv">
+                            <i class="fas fa-users me-1"></i>Expert Performance CSV
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ stats.total_picks }}</h5>
+                <p class="card-text">Total Picks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ stats.wins }}</h5>
+                <p class="card-text">Wins</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-danger">{{ stats.losses }}</h5>
+                <p class="card-text">Losses</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ stats.pending_picks }}</h5>
+                <p class="card-text">Pending</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ stats.win_rate }}%</h5>
+                <p class="card-text">Win Rate</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Picks -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Picks</h5>
+            </div>
+            <div class="card-body">
+                {% if picks %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Expert</th>
+                                <th>Sport</th>
+                                <th>Game</th>
+                                <th>Bet Type</th>
+                                <th>Details</th>
+                                <th>Odds</th>
+                                <th>Result</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pick in picks %}
+                            <tr class="{% if pick.result == 'win' %}win{% elif pick.result == 'loss' %}loss{% elif pick.result == 'push' %}push{% else %}pending{% endif %}">
+                                <td>{{ pick.pick_date[:10] if pick.pick_date else 'N/A' }}</td>
+                                <td>{{ pick.expert_name or 'Unknown' }}</td>
+                                <td>{{ pick.sport or 'N/A' }}</td>
+                                <td>{{ pick.game_info or 'N/A' }}</td>
+                                <td>{{ pick.bet_type or 'N/A' }}</td>
+                                <td>{{ (pick.bet_details[:50] + '...') if pick.bet_details and pick.bet_details|length > 50 else (pick.bet_details or 'N/A') }}</td>
+                                <td>{{ pick.odds or 'N/A' }}</td>
+                                <td>
+                                    {% if pick.result %}
+                                        <span class="badge bg-{% if pick.result == 'win' %}success{% elif pick.result == 'loss' %}danger{% elif pick.result == 'push' %}warning{% else %}secondary{% endif %}">
+                                            {{ pick.result.title() }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not pick.result or pick.result == 'pending' %}
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-success" onclick="updatePickResult({{ pick.id }}, 'win')">W</button>
+                                        <button class="btn btn-sm btn-danger" onclick="updatePickResult({{ pick.id }}, 'loss')">L</button>
+                                        <button class="btn btn-sm btn-warning" onclick="updatePickResult({{ pick.id }}, 'push')">P</button>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('all_picks') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>View All Picks
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No picks found</h5>
+                    <p class="text-muted">Click "Scrape New Picks" to get started</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
